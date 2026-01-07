@@ -1,9 +1,11 @@
 import axios from "axios";
 
 const BASE =
-  (import.meta.env.VITE_API_URL || "http://localhost:5000") + "/api";
-
-const http = axios.create({ baseURL: BASE });
+  (import.meta.env.VITE_API_BASE || "http://localhost:5000") + "/api";
+//use VITE_API_URL in local 
+const http = axios.create({
+  baseURL: BASE,
+});
 
 http.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
@@ -16,10 +18,9 @@ http.interceptors.response.use(
   (err) => {
     const status = err?.response?.status;
 
-    // ✅ token expired / invalid
+    // token expired / invalid
     if (status === 401) {
       localStorage.removeItem("token");
-      // optional: show message or redirect
       window.location.href = "/login";
     }
 
