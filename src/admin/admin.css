@@ -1,0 +1,305 @@
+/* =========================
+   ADMIN PANEL - FULL CSS
+   Copy & Paste (Responsive)
+========================= */
+
+:root {
+  --bg0: #070a12;
+  --bg1: #0b1020;
+
+  --glass: rgba(255, 255, 255, 0.06);
+  --glass2: rgba(255, 255, 255, 0.08);
+  --stroke: rgba(255, 255, 255, 0.12);
+
+  --muted: rgba(255, 255, 255, 0.68);
+  --muted2: rgba(255, 255, 255, 0.50);
+
+  --sidebar-w: 280px;
+  --topbar-h: 68px;
+}
+
+/* Page background */
+.admin-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 18% 8%, rgba(139, 92, 246, 0.22), transparent 60%),
+    radial-gradient(900px 520px at 88% 12%, rgba(59, 130, 246, 0.18), transparent 55%),
+    radial-gradient(1000px 700px at 50% 92%, rgba(0, 255, 128, 0.10), transparent 60%),
+    linear-gradient(180deg, var(--bg0), var(--bg1));
+  color: #fff;
+}
+
+/* Layout wrapper */
+.admin-wrap {
+  min-height: 100vh;
+}
+
+/* Text helpers */
+.admin-muted { color: var(--muted); }
+.admin-muted2 { color: var(--muted2); }
+
+/* Glass cards */
+.glass-card {
+  background: var(--glass);
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+/* Badge */
+.admin-badge {
+  font-size: 12px;
+  border: 1px solid var(--stroke);
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.04);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* =========================
+   DESKTOP SIDEBAR
+========================= */
+.admin-sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  max-width: var(--sidebar-w);
+  flex: 0 0 var(--sidebar-w);
+
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+
+  border-right: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* =========================
+   MAIN CONTENT
+========================= */
+.admin-main {
+  min-width: 0;
+  width: 100%;
+}
+
+/* Page title */
+.admin-page-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+
+/* =========================
+   NAV LINKS / BUTTONS
+========================= */
+.admin-link {
+  text-decoration: none;
+}
+
+.admin-btn {
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  border-radius: 14px;
+  padding: 10px 12px;
+  transition: transform 0.14s ease, background 0.14s ease, border-color 0.14s ease;
+  white-space: nowrap;
+}
+
+.admin-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(139, 92, 246, 0.28);
+  transform: translateY(-1px);
+}
+
+.admin-btn.active {
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.18),
+    rgba(59, 130, 246, 0.14)
+  );
+  border-color: rgba(139, 92, 246, 0.32);
+  box-shadow: 0 10px 26px rgba(139, 92, 246, 0.10);
+}
+
+.admin-nav-ico {
+  width: 22px;
+  display: inline-flex;
+  justify-content: center;
+  opacity: 0.95;
+}
+
+.admin-nav-text {
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+}
+
+/* =========================
+   MOBILE TOPBAR
+========================= */
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 12, 28, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.admin-topbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.admin-menu-btn {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+}
+
+.admin-menu-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.admin-topbar-mid {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.admin-topbar-brand {
+  font-weight: 900;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.admin-topbar-title {
+  font-weight: 900;
+  color: #fff;
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+/* =========================
+   OFFCANVAS (MOBILE MENU)
+========================= */
+.admin-offcanvas {
+  width: min(86vw, 320px) !important;
+  background: rgba(10, 14, 28, 0.92) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* smoother open/close */
+.offcanvas {
+  transition: transform 0.25s ease-in-out !important;
+}
+
+/* offcanvas links feel like app menu */
+.offcanvas .admin-btn {
+  padding: 12px 12px;
+  border-radius: 14px;
+}
+
+/* =========================
+   TABLES (RESPONSIVE)
+========================= */
+.admin-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 16px;
+}
+
+.admin-table {
+  color: #fff;
+  min-width: 900px;
+}
+
+.admin-table thead th {
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 800;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.admin-table td,
+.admin-table th {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.admin-shell .table,
+.admin-shell .table tbody,
+.admin-shell .table thead,
+.admin-shell .table tr,
+.admin-shell .table td,
+.admin-shell .table th {
+  background: transparent !important;
+}
+
+/* =========================
+   INPUTS / FORMS
+========================= */
+.admin-input {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+}
+
+.admin-input::placeholder {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.admin-input:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.20) !important;
+  border-color: rgba(139, 92, 246, 0.40) !important;
+}
+
+/* =========================
+   SMALL SCREEN TUNING
+========================= */
+@media (max-width: 575.98px) {
+  .glass-card {
+    border-radius: 16px;
+  }
+
+  .admin-nav-text {
+    font-size: 14px;
+  }
+
+  .admin-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+}
+
+/* Desktop: topbar hidden */
+@media (min-width: 992px) {
+  .admin-topbar {
+    display: none;
+  }
+}
