@@ -15,7 +15,6 @@ export default function Login() {
   useEffect(() => {
     if (!authReady) return;
     if (!isAuthed) return;
-
     nav(user?.role === "admin" ? "/admin" : "/", { replace: true });
   }, [authReady, isAuthed, user, nav]);
 
@@ -44,62 +43,188 @@ export default function Login() {
   return (
     <>
       <style>{`
-        .authWrap{
-          min-height: calc(100vh - 0px);
+        .cineLoginPage{
+          min-height: 100vh;
           display:flex;
           align-items:center;
           justify-content:center;
           padding: 28px 14px;
           background:
             radial-gradient(900px 450px at 15% 15%, rgba(37,117,252,0.18), transparent 60%),
-            radial-gradient(900px 500px at 85% 10%, rgba(106,17,203,0.22), transparent 55%),
+            radial-gradient(900px 500px at 85% 10%, rgba(255, 77, 77, 0.18), transparent 55%),
+            radial-gradient(900px 520px at 45% 90%, rgba(0, 255, 170, 0.10), transparent 60%),
             linear-gradient(180deg, #070A12, #0B1020);
-        }
-        .authCard{
-          width: min(460px, 100%);
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.14);
-          border-radius: 22px;
-          backdrop-filter: blur(14px);
-          box-shadow: 0 22px 70px rgba(0,0,0,0.55);
           color: #fff;
         }
-        .authTitle{ font-weight: 900; letter-spacing: .2px; }
-        .authDim{ color: rgba(255,255,255,0.7); }
-        .authInput{
+
+        .cineLoginCard{
+          width: min(520px, 100%);
+          border-radius: 24px;
+          overflow: hidden;
+          box-shadow: 0 24px 90px rgba(0,0,0,0.60);
+          border: 1px solid rgba(255,255,255,0.12);
+          background: rgba(255,255,255,0.06);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+        }
+
+        .cineTop{
+          padding: 22px 22px 18px;
+          border-bottom: 1px solid rgba(255,255,255,0.10);
+          background:
+            linear-gradient(135deg, rgba(45,107,255,0.16), rgba(255,255,255,0.02));
+        }
+
+        .brandRow{
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          gap: 10px;
+          margin-bottom: 8px;
+        }
+
+        .brandIcon{
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          display:grid;
+          place-items:center;
+          background: rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.14);
+          box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+        }
+
+        .brandName{
+          font-weight: 950;
+          letter-spacing: .2px;
+          font-size: 22px;
+          margin: 0;
+          line-height: 1;
+        }
+
+        .brandTag{
+          text-align:center;
+          color: rgba(255,255,255,0.74);
+          font-size: 13px;
+        }
+
+        .cineBody{
+          padding: 22px;
+        }
+
+        .sectionTitle{
+          text-align:center;
+          margin: 0 0 6px;
+          font-weight: 900;
+          font-size: 22px;
+          letter-spacing: .2px;
+        }
+
+        .sectionSub{
+          text-align:center;
+          color: rgba(255,255,255,0.72);
+          margin-bottom: 14px;
+          font-size: 13px;
+        }
+
+        .cineLabel{
+          color: rgba(255,255,255,0.78);
+          font-size: 13px;
+          margin-bottom: 6px;
+        }
+
+        .cineInput{
           background: rgba(255,255,255,0.06) !important;
           border: 1px solid rgba(255,255,255,0.16) !important;
           color: #fff !important;
           border-radius: 14px !important;
           padding: 12px 12px !important;
         }
-        .authInput::placeholder{ color: rgba(255,255,255,0.55); }
-        .authBtn{
-          border-radius: 14px;
-          padding: 11px 14px;
-          font-weight: 700;
+
+        .cineInput::placeholder{ color: rgba(255,255,255,0.55); }
+
+        .cineBtn{
+          border-radius: 14px !important;
+          padding: 11px 14px !important;
+          font-weight: 900 !important;
+          letter-spacing: .2px;
         }
-        .authFooterLink{ color: rgba(255,255,255,0.8); }
+
+        .cineBtnPrimary{
+          background: #2d6bff !important;
+          border: 1px solid rgba(255,255,255,0.12) !important;
+          box-shadow: 0 16px 45px rgba(45,107,255,0.26);
+        }
+
+        .cineLink{
+          color: rgba(255,255,255,0.85);
+          text-decoration: none;
+        }
+        .cineLink:hover{ text-decoration: underline; color:#fff; }
+
+        .cineFooter{
+          padding: 14px 22px 18px;
+          border-top: 1px solid rgba(255,255,255,0.10);
+          color: rgba(255,255,255,0.65);
+          font-size: 12px;
+          display:flex;
+          justify-content:space-between;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        @media (max-width: 420px){
+          .brandName{ font-size: 20px; }
+          .cineBody{ padding: 18px; }
+        }
       `}</style>
 
-      <div className="authWrap">
-        <div className="authCard">
-          <div className="p-4 p-md-4">
-            <div className="mb-3">
-              <div className="authDim small text-uppercase" style={{ letterSpacing: ".2em" }}>
-                Cinema Booking System
+      <div className="cineLoginPage">
+        <div className="cineLoginCard">
+          {/* TOP BRAND HEADER */}
+          <div className="cineTop">
+            <div className="brandRow">
+              <div className="brandIcon" aria-hidden="true">
+                {/* 🎬 simple cinema SVG icon (no dependencies) */}
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M6 7h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"
+                    stroke="rgba(255,255,255,0.92)"
+                    strokeWidth="1.6"
+                  />
+                  <path
+                    d="M8 7V5a1 1 0 0 1 1-1h2v3M14 7V4h2a1 1 0 0 1 1 1v2"
+                    stroke="rgba(255,255,255,0.92)"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M9 12h6M9 15h6"
+                    stroke="rgba(255,255,255,0.78)"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                </svg>
               </div>
-              <h3 className="authTitle mb-1">Welcome back</h3>
-              <div className="authDim">Sign in to continue.</div>
+              <h1 className="brandName">Cinebook</h1>
+            </div>
+            <div className="brandTag">Real-time cinema seat booking • Fast • Secure</div>
+          </div>
+
+          {/* BODY */}
+          <div className="cineBody">
+            <h2 className="sectionTitle">Sign in</h2>
+            <div className="sectionSub">
+              Access your bookings and reserve seats instantly.
             </div>
 
-            {error ? <div className="alert alert-danger">{error}</div> : null}
+            {error ? <div className="alert alert-danger mb-3">{error}</div> : null}
 
             <form onSubmit={onSubmit} className="d-grid gap-3">
               <div>
-                <label className="form-label authDim">Email</label>
+                <div className="cineLabel">Email</div>
                 <input
-                  className="form-control authInput"
+                  className="form-control cineInput"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
@@ -108,30 +233,34 @@ export default function Login() {
               </div>
 
               <div>
-                <label className="form-label authDim">Password</label>
+                <div className="cineLabel">Password</div>
                 <input
                   type="password"
-                  className="form-control authInput"
+                  className="form-control cineInput"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
-                  placeholder="Your password"
+                  placeholder="Enter your password"
                 />
               </div>
 
-              <button className="btn btn-primary authBtn" disabled={busy}>
+              <button className="btn cineBtn cineBtnPrimary" disabled={busy}>
                 {busy ? "Signing in..." : "Sign in"}
               </button>
             </form>
 
-            <div className="mt-3 authDim small">
+            <div className="text-center mt-3" style={{ color: "rgba(255,255,255,0.72)" }}>
               No account?{" "}
-              <Link className="authFooterLink" to="/signup">
+              <Link className="cineLink" to="/signup">
                 Create one
               </Link>
             </div>
+          </div>
 
-
+          {/* FOOTER */}
+          <div className="cineFooter">
+            <span>© {new Date().getFullYear()} Cinebook</span>
+            <span>Powered by real-time seat locking</span>
           </div>
         </div>
       </div>

@@ -16,6 +16,20 @@ function fmtMoney(n) {
   return `LKR ${num.toLocaleString()}`;
 }
 
+function getUserName(b) {
+  // supports different field names if your User model is different
+  return (
+    b?.userId?.name ||
+    b?.userId?.fullName ||
+    b?.userId?.username ||
+    ""
+  );
+}
+
+function getUserEmail(b) {
+  return b?.userId?.email || b?.email || "";
+}
+
 export default function AdminBookings() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,10 +78,11 @@ export default function AdminBookings() {
     return list.filter((b) => {
       const movieTitle = b?.showId?.movieId?.title || "";
       const hallName = b?.showId?.hallId?.name || "";
-      const userEmail = b?.userId?.email || b?.email || "";
+      const userName = getUserName(b) || "";
+      const userEmail = getUserEmail(b) || "";
       const seats = (b?.seats || b?.seatNumbers || []).join(", ");
 
-      return [movieTitle, hallName, userEmail, seats]
+      return [movieTitle, hallName, userName, userEmail, seats]
         .filter(Boolean)
         .some((x) => x.toLowerCase().includes(s));
     });
@@ -97,6 +112,21 @@ export default function AdminBookings() {
     <div style={{ background: "transparent" }}>
       <style>{`
         .admin-input::placeholder { color: rgba(255,255,255,0.85) !important; }
+
+        .cust-wrap{
+          display:flex;
+          flex-direction:column;
+          line-height:1.15;
+        }
+        .cust-name{
+          font-weight:700;
+          color:#fff;
+        }
+        .cust-email{
+          font-size: 12px;
+          color: rgba(255,255,255,0.65);
+          word-break: break-word;
+        }
       `}</style>
 
       {/* Header */}
@@ -108,11 +138,7 @@ export default function AdminBookings() {
           </div>
         </div>
 
-        <button
-          className="btn btn-outline-light rounded-4"
-          onClick={load}
-          disabled={loading}
-        >
+        <button className="btn btn-outline-light rounded-4" onClick={load} disabled={loading}>
           {loading ? "Refreshing..." : "Refresh"}
         </button>
       </div>
@@ -128,7 +154,7 @@ export default function AdminBookings() {
                 <input
                   className="form-control admin-input"
                   style={inputStyle}
-                  placeholder="Search by movie, hall, user email, or seat (e.g., A1)"
+                  placeholder="Search by movie, hall, user name/email, or seat (e.g., A1)"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                 />
@@ -228,17 +254,22 @@ export default function AdminBookings() {
                   const computedAmount = seatCount * price;
                   const total = b?.total != null ? Number(b.total || 0) : computedAmount;
 
+                  const userName = getUserName(b);
+                  const userEmail = getUserEmail(b);
+
                   return (
                     <tr key={b._id} style={{ background: "transparent" }}>
                       <td className="text-white-50">{fmtDate(b.createdAt)}</td>
 
-                      <td className="text-white">
-                        {b?.userId?.email || b?.email || "—"}
+                      {/* ✅ CUSTOMER NAME + EMAIL */}
+                      <td className="text-white" style={{ minWidth: 220 }}>
+                        <div className="cust-wrap">
+                          <span className="cust-name">{userName || "—"}</span>
+                          <span className="cust-email">{userEmail || "—"}</span>
+                        </div>
                       </td>
 
-                      <td className="text-white">
-                        {b?.showId?.movieId?.title || "—"}
-                      </td>
+                      <td className="text-white">{b?.showId?.movieId?.title || "—"}</td>
 
                       <td className="text-white-50">{b?.showId?.hallId?.name || "—"}</td>
 

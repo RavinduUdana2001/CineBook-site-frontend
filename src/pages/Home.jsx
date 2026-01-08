@@ -1565,7 +1565,7 @@ export default function Home() {
       `}</style>
 
       {/* ========================= HERO SECTION ========================= */}
-      <section className="hero-section mt-5">
+      <section className="hero-section mt-0 mt-lg-3">
         {slides.map((s, i) => (
           <div
             key={s.id}

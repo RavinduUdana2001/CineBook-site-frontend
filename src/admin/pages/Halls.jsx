@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import http from "../../api/http";
 
+const emptyHall = { name: "", rows: "", cols: "" };
+
 export default function AdminHalls() {
   const [halls, setHalls] = useState([]);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const [form, setForm] = useState({
-    name: "",
-    rows: "",
-    cols: "",
-  });
+  // create form
+  const [form, setForm] = useState(emptyHall);
+
+  // edit modal
+  const [editOpen, setEditOpen] = useState(false);
+  const [editBusy, setEditBusy] = useState(false);
+  const [edit, setEdit] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -19,7 +23,7 @@ export default function AdminHalls() {
       setHalls(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error(e);
-      alert("Failed to load halls. Please check admin token/API.");
+      alert("Failed to load halls. Check admin token/API.");
     } finally {
       setLoading(false);
     }
@@ -29,26 +33,68 @@ export default function AdminHalls() {
     load();
   }, []);
 
-  async function createHall(e) {
-    e.preventDefault();
-
+  function normalizeHall(src) {
     const payload = {
-      name: form.name.trim(),
-      rows: Number(form.rows),
-      cols: Number(form.cols),
+      name: (src.name || "").trim(),
+      rows: Number(src.rows),
+      cols: Number(src.cols),
     };
 
-    if (!payload.name) return alert("Hall name is required.");
-    if (!payload.rows || payload.rows < 1) return alert("Rows must be at least 1.");
-    if (!payload.cols || payload.cols < 1) return alert("Columns must be at least 1.");
+    if (!payload.name) throw new Error("Hall name is required.");
+    if (!payload.rows || payload.rows < 1) throw new Error("Rows must be at least 1.");
+    if (!payload.cols || payload.cols < 1) throw new Error("Columns must be at least 1.");
 
+    return payload;
+  }
+
+  async function createHall(e) {
+    e.preventDefault();
     try {
+      const payload = normalizeHall(form);
       await http.post("/halls", payload);
-      setForm({ name: "", rows: "", cols: "" });
+      setForm(emptyHall);
       await load();
     } catch (e) {
       console.error(e);
-      alert(e?.response?.data?.message || "Create hall failed.");
+      alert(e?.response?.data?.message || e?.message || "Create hall failed.");
+    }
+  }
+
+  function openEditModal(h) {
+    setEdit({ _id: h._id, name: h.name || "", rows: h.rows || "", cols: h.cols || "" });
+    setEditOpen(true);
+  }
+
+  async function saveEdit(e) {
+    e.preventDefault();
+    if (!edit?._id) return;
+    setEditBusy(true);
+    try {
+      const payload = normalizeHall(edit);
+      await http.put(`/halls/${edit._id}`, payload);
+      setEditOpen(false);
+      setEdit(null);
+      await load();
+    } catch (e) {
+      console.error(e);
+      alert(e?.response?.data?.message || e?.message || "Update hall failed.");
+    } finally {
+      setEditBusy(false);
+    }
+  }
+
+  async function deleteHall(id, name) {
+    const ok = window.confirm(
+      `Delete hall "${name}"?\n\nIf there are shows using this hall, backend may reject.`
+    );
+    if (!ok) return;
+
+    try {
+      await http.delete(`/halls/${id}`);
+      await load();
+    } catch (e) {
+      console.error(e);
+      alert(e?.response?.data?.message || "Delete failed. Check backend rules.");
     }
   }
 
@@ -68,9 +114,23 @@ export default function AdminHalls() {
   return (
     <div style={{ background: "transparent" }}>
       <style>{`
-        .admin-input::placeholder { color: rgba(255,255,255,0.85) !important; }
+        .admin-input::placeholder { color: rgba(255,255,255,0.70) !important; }
+        .admin-modal-backdrop{
+          position: fixed; inset: 0; background: rgba(0,0,0,.55);
+          display:grid; place-items:center; z-index: 9999; padding: 16px;
+        }
+        .admin-modal{
+          width: min(680px, 100%);
+          border-radius: 18px;
+          padding: 14px;
+          background: rgba(10,12,18,0.92);
+          border: 1px solid rgba(255,255,255,0.14);
+          box-shadow: 0 30px 100px rgba(0,0,0,0.65);
+          color: #fff;
+        }
       `}</style>
 
+      {/* Header */}
       <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2 mb-3">
         <div>
           <h3 className="m-0 text-white">Halls</h3>
@@ -180,13 +240,14 @@ export default function AdminHalls() {
                     <th>Rows</th>
                     <th>Cols</th>
                     <th>Total Seats</th>
+                    <th className="text-end">Actions</th>
                   </tr>
                 </thead>
 
                 <tbody style={{ background: "transparent" }}>
                   {loading && (
                     <tr>
-                      <td colSpan={4} className="text-center text-white-50 py-4">
+                      <td colSpan={5} className="text-center text-white-50 py-4">
                         Loading halls...
                       </td>
                     </tr>
@@ -194,7 +255,7 @@ export default function AdminHalls() {
 
                   {!loading && filtered.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="text-center text-white-50 py-4">
+                      <td colSpan={5} className="text-center text-white-50 py-4">
                         No halls found.
                       </td>
                     </tr>
@@ -207,6 +268,22 @@ export default function AdminHalls() {
                         <td className="text-white-50">{h.rows}</td>
                         <td className="text-white-50">{h.cols}</td>
                         <td className="text-white-50">{Number(h.rows) * Number(h.cols)}</td>
+                        <td className="text-end">
+                          <div className="d-flex justify-content-end gap-2 flex-wrap">
+                            <button
+                              className="btn btn-sm btn-outline-light rounded-4"
+                              onClick={() => openEditModal(h)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-danger rounded-4"
+                              onClick={() => deleteHall(h._id, h.name)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                 </tbody>
@@ -215,6 +292,94 @@ export default function AdminHalls() {
           </div>
         </div>
       </div>
+
+      {/* EDIT MODAL */}
+      {editOpen && edit ? (
+        <div className="admin-modal-backdrop" onClick={() => (editBusy ? null : setEditOpen(false))}>
+          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div className="fw-bold" style={{ fontSize: 18 }}>Edit hall</div>
+                <div className="small text-white-50">Update seating layout carefully (affects seat map).</div>
+              </div>
+              <button
+                className="btn btn-outline-light rounded-4"
+                disabled={editBusy}
+                onClick={() => setEditOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <hr style={{ borderColor: "rgba(255,255,255,0.12)" }} />
+
+            <form onSubmit={saveEdit} className="row g-2">
+              <div className="col-12">
+                <label className="small text-white-50 mb-1">Hall name</label>
+                <input
+                  className="form-control admin-input"
+                  style={inputStyle}
+                  value={edit.name}
+                  onChange={(e) => setEdit({ ...edit, name: e.target.value })}
+                />
+              </div>
+
+              <div className="col-6">
+                <label className="small text-white-50 mb-1">Rows</label>
+                <input
+                  type="number"
+                  min="1"
+                  className="form-control admin-input"
+                  style={inputStyle}
+                  value={edit.rows}
+                  onChange={(e) => setEdit({ ...edit, rows: e.target.value })}
+                />
+              </div>
+
+              <div className="col-6">
+                <label className="small text-white-50 mb-1">Columns</label>
+                <input
+                  type="number"
+                  min="1"
+                  className="form-control admin-input"
+                  style={inputStyle}
+                  value={edit.cols}
+                  onChange={(e) => setEdit({ ...edit, cols: e.target.value })}
+                />
+              </div>
+
+              <div className="col-12 mt-2">
+                <div className="small text-white-50">Preview</div>
+                <div
+                  className="rounded-4 p-2 mt-2"
+                  style={{
+                    background: "rgba(0,0,0,0.25)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    maxHeight: 200,
+                    overflow: "auto",
+                  }}
+                >
+                  <SeatPreview rows={Number(edit.rows)} cols={Number(edit.cols)} />
+                </div>
+              </div>
+
+              <div className="col-12 d-flex justify-content-end gap-2 mt-2">
+                <button
+                  type="button"
+                  className="btn btn-outline-light rounded-4"
+                  disabled={editBusy}
+                  onClick={() => setEditOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button className="btn btn-primary rounded-4" type="submit" disabled={editBusy}>
+                  {editBusy ? "Saving..." : "Save changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

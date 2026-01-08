@@ -1,28 +1,37 @@
 import { useEffect, useMemo, useState } from "react";
 import http from "../../api/http";
 
+const emptyForm = {
+  title: "",
+  genre: "",
+  durationMins: "",
+  description: "",
+  posterUrl: "",
+  isActive: true,
+};
+
 export default function AdminMovies() {
   const [movies, setMovies] = useState([]);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const [form, setForm] = useState({
-    title: "",
-    genre: "",
-    durationMins: "",
-    description: "",
-    posterUrl: "",
-    isActive: true,
-  });
+  // create form
+  const [form, setForm] = useState(emptyForm);
+
+  // edit modal
+  const [editOpen, setEditOpen] = useState(false);
+  const [editBusy, setEditBusy] = useState(false);
+  const [edit, setEdit] = useState(null); // holds movie being edited
 
   async function load() {
     setLoading(true);
     try {
+      // ✅ if backend has /movies/admin use this, otherwise change to "/movies"
       const res = await http.get("/movies/admin");
       setMovies(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error(e);
-      alert("Failed to load movies. Please check admin token/API.");
+      alert("Failed to load movies. Check admin token & API route.");
     } finally {
       setLoading(false);
     }
@@ -32,49 +41,83 @@ export default function AdminMovies() {
     load();
   }, []);
 
-  async function createMovie(e) {
-    e.preventDefault();
-
+  function normalizePayload(src) {
     const payload = {
-      title: form.title.trim(),
-      genre: form.genre.trim(),
-      durationMins: Number(form.durationMins),
-      description: form.description.trim(),
-      posterUrl: form.posterUrl.trim(),
-      isActive: !!form.isActive,
+      title: (src.title || "").trim(),
+      genre: (src.genre || "").trim(),
+      durationMins: Number(src.durationMins),
+      description: (src.description || "").trim(),
+      posterUrl: (src.posterUrl || "").trim(),
+      isActive: !!src.isActive,
     };
 
-    if (!payload.title) return alert("Movie title is required.");
+    if (!payload.title) throw new Error("Movie title is required.");
     if (!payload.durationMins || payload.durationMins < 1)
-      return alert("Duration must be a positive number (example: 120).");
+      throw new Error("Duration must be a positive number (e.g., 120).");
 
+    return payload;
+  }
+
+  async function createMovie(e) {
+    e.preventDefault();
     try {
+      const payload = normalizePayload(form);
       await http.post("/movies", payload);
-      setForm({
-        title: "",
-        genre: "",
-        durationMins: "",
-        description: "",
-        posterUrl: "",
-        isActive: true,
-      });
+      setForm(emptyForm);
       await load();
     } catch (e) {
       console.error(e);
-      alert(e?.response?.data?.message || "Create movie failed.");
+      alert(e?.response?.data?.message || e?.message || "Create movie failed.");
     }
   }
 
-  async function deleteMovie(movieId, title) {
-    const ok = window.confirm(`Delete "${title}"?\nThis will mark it inactive (soft delete).`);
-    if (!ok) return;
+  function openEditModal(movie) {
+    setEdit({
+      _id: movie._id,
+      title: movie.title || "",
+      genre: movie.genre || "",
+      durationMins: movie.durationMins || "",
+      description: movie.description || "",
+      posterUrl: movie.posterUrl || "",
+      isActive: !!movie.isActive,
+    });
+    setEditOpen(true);
+  }
 
+  async function saveEdit(e) {
+    e.preventDefault();
+    if (!edit?._id) return;
+    setEditBusy(true);
     try {
-      await http.delete(`/movies/${movieId}`);
+      const payload = normalizePayload(edit);
+      await http.put(`/movies/${edit._id}`, payload);
+      setEditOpen(false);
+      setEdit(null);
       await load();
     } catch (e) {
       console.error(e);
-      alert("Delete failed. Please check backend route permissions.");
+      alert(e?.response?.data?.message || e?.message || "Update failed.");
+    } finally {
+      setEditBusy(false);
+    }
+  }
+
+  async function setActive(movieId, title, isActive) {
+    const ok = window.confirm(
+      `${isActive ? "Restore" : "Disable"} "${title}"?\n${
+        isActive
+          ? "This will make it visible to users again."
+          : "This will hide it from users (soft disable)."
+      }`
+    );
+    if (!ok) return;
+
+    try {
+      await http.put(`/movies/${movieId}`, { isActive: !!isActive });
+      await load();
+    } catch (e) {
+      console.error(e);
+      alert(e?.response?.data?.message || "Action failed. Check permissions.");
     }
   }
 
@@ -84,7 +127,7 @@ export default function AdminMovies() {
     return movies.filter((m) =>
       [m.title, m.genre, m.description]
         .filter(Boolean)
-        .some((x) => x.toLowerCase().includes(s))
+        .some((x) => String(x).toLowerCase().includes(s))
     );
   }, [movies, q]);
 
@@ -98,14 +141,28 @@ export default function AdminMovies() {
   return (
     <div style={{ background: "transparent" }}>
       <style>{`
-        .admin-input::placeholder { color: rgba(255,255,255,0.85) !important; }
+        .admin-input::placeholder { color: rgba(255,255,255,0.70) !important; }
+        .admin-modal-backdrop{
+          position: fixed; inset: 0; background: rgba(0,0,0,.55);
+          display:grid; place-items:center; z-index: 9999; padding: 16px;
+        }
+        .admin-modal{
+          width: min(720px, 100%);
+          border-radius: 18px;
+          padding: 14px;
+          background: rgba(10,12,18,0.92);
+          border: 1px solid rgba(255,255,255,0.14);
+          box-shadow: 0 30px 100px rgba(0,0,0,0.65);
+          color: #fff;
+        }
       `}</style>
 
+      {/* Header */}
       <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2 mb-3">
         <div>
           <h3 className="m-0 text-white">Movies</h3>
           <div className="small admin-muted2">
-            Manage movie catalog and control what is visible to users.
+            Create, update and control visibility of movies.
           </div>
         </div>
 
@@ -158,7 +215,9 @@ export default function AdminMovies() {
                 style={inputStyle}
                 placeholder="Duration (minutes) e.g., 120"
                 value={form.durationMins}
-                onChange={(e) => setForm({ ...form, durationMins: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, durationMins: e.target.value })
+                }
               />
 
               <textarea
@@ -167,7 +226,9 @@ export default function AdminMovies() {
                 rows={4}
                 placeholder="Short description"
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
               />
 
               <input
@@ -175,7 +236,9 @@ export default function AdminMovies() {
                 style={inputStyle}
                 placeholder="Poster image URL (https://...)"
                 value={form.posterUrl}
-                onChange={(e) => setForm({ ...form, posterUrl: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, posterUrl: e.target.value })
+                }
               />
 
               <div className="d-flex align-items-center justify-content-between mt-1 text-white">
@@ -184,11 +247,13 @@ export default function AdminMovies() {
                     className="form-check-input"
                     type="checkbox"
                     checked={form.isActive}
-                    onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+                    onChange={(e) =>
+                      setForm({ ...form, isActive: e.target.checked })
+                    }
                     id="isActive"
                   />
                   <label className="form-check-label" htmlFor="isActive">
-                    Active (visible to users)
+                    Active (visible)
                   </label>
                 </div>
 
@@ -198,9 +263,12 @@ export default function AdminMovies() {
               </div>
             </form>
 
-            {form.posterUrl?.trim() && (
+            {form.posterUrl?.trim() ? (
               <div className="mt-3 glass-soft p-2">
-                <div className="small" style={{ color: "rgba(255,255,255,0.75)" }}>
+                <div
+                  className="small"
+                  style={{ color: "rgba(255,255,255,0.75)" }}
+                >
                   Poster preview
                 </div>
                 <img
@@ -213,7 +281,7 @@ export default function AdminMovies() {
                   }}
                 />
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -226,7 +294,10 @@ export default function AdminMovies() {
             </div>
 
             <div className="table-responsive">
-              <table className="table admin-table align-middle m-0" style={{ background: "transparent" }}>
+              <table
+                className="table admin-table align-middle m-0"
+                style={{ background: "transparent" }}
+              >
                 <thead>
                   <tr>
                     <th style={{ width: 72 }}>Poster</th>
@@ -273,7 +344,11 @@ export default function AdminMovies() {
                               <img
                                 src={m.posterUrl}
                                 alt={m.title}
-                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                }}
                                 onError={(e) => {
                                   e.currentTarget.style.display = "none";
                                 }}
@@ -282,7 +357,7 @@ export default function AdminMovies() {
                           </div>
                         </td>
 
-                        <td style={{ minWidth: 220 }}>
+                        <td style={{ minWidth: 240 }}>
                           <div className="fw-semibold text-white">{m.title}</div>
                           <div className="small admin-muted2">
                             {m.description?.slice(0, 64) || "—"}
@@ -290,19 +365,41 @@ export default function AdminMovies() {
                         </td>
 
                         <td className="text-white-50">{m.genre || "—"}</td>
-                        <td className="text-white-50">{m.durationMins} mins</td>
+                        <td className="text-white-50">
+                          {m.durationMins} mins
+                        </td>
 
                         <td>
-                          <span className="admin-badge">{m.isActive ? "Active" : "Inactive"}</span>
+                          <span className="admin-badge">
+                            {m.isActive ? "Active" : "Inactive"}
+                          </span>
                         </td>
 
                         <td className="text-end">
-                          <button
-                            className="btn btn-sm btn-outline-danger rounded-4"
-                            onClick={() => deleteMovie(m._id, m.title)}
-                          >
-                            Disable
-                          </button>
+                          <div className="d-flex justify-content-end gap-2 flex-wrap">
+                            <button
+                              className="btn btn-sm btn-outline-light rounded-4"
+                              onClick={() => openEditModal(m)}
+                            >
+                              Edit
+                            </button>
+
+                            {m.isActive ? (
+                              <button
+                                className="btn btn-sm btn-outline-danger rounded-4"
+                                onClick={() => setActive(m._id, m.title, false)}
+                              >
+                                Disable
+                              </button>
+                            ) : (
+                              <button
+                                className="btn btn-sm btn-success rounded-4"
+                                onClick={() => setActive(m._id, m.title, true)}
+                              >
+                                Restore
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -312,6 +409,149 @@ export default function AdminMovies() {
           </div>
         </div>
       </div>
+
+      {/* EDIT MODAL */}
+      {editOpen && edit ? (
+        <div
+          className="admin-modal-backdrop"
+          onClick={() => (editBusy ? null : setEditOpen(false))}
+        >
+          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div className="fw-bold" style={{ fontSize: 18 }}>
+                  Edit movie
+                </div>
+                <div className="small text-white-50">
+                  Update details and visibility.
+                </div>
+              </div>
+              <button
+                className="btn btn-outline-light rounded-4"
+                disabled={editBusy}
+                onClick={() => setEditOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <hr style={{ borderColor: "rgba(255,255,255,0.12)" }} />
+
+            <form onSubmit={saveEdit} className="row g-2">
+              <div className="col-12">
+                <label className="small text-white-50 mb-1">Title</label>
+                <input
+                  className="form-control admin-input"
+                  style={inputStyle}
+                  value={edit.title}
+                  onChange={(e) => setEdit({ ...edit, title: e.target.value })}
+                />
+              </div>
+
+              <div className="col-12 col-md-6">
+                <label className="small text-white-50 mb-1">Genre</label>
+                <input
+                  className="form-control admin-input"
+                  style={inputStyle}
+                  value={edit.genre}
+                  onChange={(e) => setEdit({ ...edit, genre: e.target.value })}
+                />
+              </div>
+
+              <div className="col-12 col-md-6">
+                <label className="small text-white-50 mb-1">
+                  Duration (mins)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  className="form-control admin-input"
+                  style={inputStyle}
+                  value={edit.durationMins}
+                  onChange={(e) =>
+                    setEdit({ ...edit, durationMins: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="col-12">
+                <label className="small text-white-50 mb-1">Description</label>
+                <textarea
+                  className="form-control admin-input"
+                  style={inputStyle}
+                  rows={4}
+                  value={edit.description}
+                  onChange={(e) =>
+                    setEdit({ ...edit, description: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="col-12">
+                <label className="small text-white-50 mb-1">Poster URL</label>
+                <input
+                  className="form-control admin-input"
+                  style={inputStyle}
+                  value={edit.posterUrl}
+                  onChange={(e) =>
+                    setEdit({ ...edit, posterUrl: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="col-12 d-flex align-items-center justify-content-between mt-2">
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    checked={edit.isActive}
+                    onChange={(e) =>
+                      setEdit({ ...edit, isActive: e.target.checked })
+                    }
+                    id="editIsActive"
+                  />
+                  <label className="form-check-label" htmlFor="editIsActive">
+                    Active (visible)
+                  </label>
+                </div>
+
+                <div className="d-flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline-light rounded-4"
+                    disabled={editBusy}
+                    onClick={() => setEditOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn btn-primary rounded-4"
+                    type="submit"
+                    disabled={editBusy}
+                  >
+                    {editBusy ? "Saving..." : "Save changes"}
+                  </button>
+                </div>
+              </div>
+
+              {edit.posterUrl?.trim() ? (
+                <div className="col-12 mt-2">
+                  <div className="small text-white-50">Poster preview</div>
+                  <img
+                    src={edit.posterUrl}
+                    alt="poster"
+                    className="img-fluid rounded-4 mt-2"
+                    style={{ maxHeight: 240, width: "100%", objectFit: "cover" }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                </div>
+              ) : null}
+            </form>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
