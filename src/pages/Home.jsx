@@ -143,10 +143,47 @@ export default function Home() {
   }, []);
 
 
-  // Random shuffle helper
+// ✅ Stable Fisher–Yates shuffle (DO NOT shuffle inside JSX render)
 function shuffleArray(arr) {
-  return [...arr].sort(() => Math.random() - 0.5);
+  const a = Array.isArray(arr) ? [...arr] : [];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
+
+// ✅ Display lists (these make UI stable)
+const [trendingDisplay, setTrendingDisplay] = useState([]);
+const [topPicksDisplay, setTopPicksDisplay] = useState([]);
+
+// ✅ Your existing computed lists (keep or adjust as you want)
+const topPicks = useMemo(() => {
+  if (!movies.length) return [];
+  // pick base list (rating based / any stable rule)
+  return [...movies].sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0));
+}, [movies]);
+
+const trendingNow = useMemo(() => {
+  if (!popularMovies.length) return [];
+  return [...popularMovies];
+}, [popularMovies]);
+
+// ✅ Freeze the cards (ONLY changes when movies list changes)
+useEffect(() => {
+  setTrendingDisplay(shuffleArray(trendingNow).slice(0, 4));
+}, [trendingNow]);
+
+useEffect(() => {
+  setTopPicksDisplay(shuffleArray(topPicks).slice(0, 3));
+}, [topPicks]);
+
+// ✅ Manual refresh button
+function refreshHighlights() {
+  setTrendingDisplay(shuffleArray(trendingNow).slice(0, 4));
+  setTopPicksDisplay(shuffleArray(topPicks).slice(0, 3));
+}
+
 
 
 
@@ -171,21 +208,18 @@ function shuffleArray(arr) {
 
   const closeModal = () => setModalOpen(false);
 
-  const topPicks = useMemo(() => {
-    if (!movies.length) return [];
-    return [...movies]
-      .map(movie => ({
-        ...movie,
-        popularityScore: (movie.rating || 0) * 20 + Math.floor(Math.random() * 30)
-      }))
-      .sort((a, b) => (b.popularityScore || 0) - (a.popularityScore || 0))
-      .slice(0, 6);
-  }, [movies]);
 
-  const trendingNow = useMemo(() => {
-    if (!popularMovies.length) return [];
-    return popularMovies.slice(0, 8);
-  }, [popularMovies]);
+
+// ✅ Freeze 4 Trending cards (only changes when trendingNow changes)
+useEffect(() => {
+  setTrendingDisplay(shuffleArray(trendingNow).slice(0, 4));
+}, [trendingNow]);
+
+// ✅ Freeze 3 Top Picks cards (only changes when topPicks changes)
+useEffect(() => {
+  setTopPicksDisplay(shuffleArray(topPicks).slice(0, 3));
+}, [topPicks]);
+
 
   // =========================
   // NEWSLETTER
@@ -1726,145 +1760,172 @@ function shuffleArray(arr) {
           <h2 className="section-title mb-0">Trending Now</h2>
         </div>
         <p className="section-subtitle mb-0">
-          Popular movies selected randomly for you
+          Popular movies selected for you (stable until refresh)
         </p>
+      </div>
+
+      <div className="d-flex gap-2 flex-wrap">
+        <button
+          className="btn-cinema btn-cinema-secondary"
+          onClick={refreshHighlights}
+          type="button"
+        >
+          Refresh <i className="fa-solid fa-rotate" />
+        </button>
+
+        <button
+          className="btn-cinema btn-cinema-secondary"
+          onClick={() => goToHref("#now-showing")}
+          type="button"
+        >
+          View All <i className="fa-solid fa-arrow-right" />
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div className="row g-4">
+    {trendingDisplay.map((movie, idx) => (
+      <div
+        key={movie._id}
+        className="col-12 col-md-6 col-lg-3 fade-in-up"
+        style={{ animationDelay: `${idx * 0.1}s` }}
+      >
+        <div className="movie-card">
+          <div className="movie-image-container">
+            {idx < 2 && (
+              <div className="movie-badge" style={{ background: "var(--accent-2)" }}>
+                {idx === 0 ? "🔥 Hot" : "🎬 Trending"}
+              </div>
+            )}
+
+            <img
+              src={
+                movie.posterUrl ||
+                "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=800&q=80"
+              }
+              alt={movie.title}
+              loading="lazy"
+            />
+          </div>
+
+          <div className="movie-content">
+            <h3 className="movie-title">{movie.title}</h3>
+            <div className="movie-meta">
+              {movie.genre || "Action"} • {movie.durationMins || 120} min •{" "}
+              {movie.language || "English"}
+            </div>
+
+            <div className="movie-actions">
+              <button
+                className="btn-cinema btn-cinema-primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openMovie(movie);
+                }}
+                type="button"
+              >
+                <i className="fa-solid fa-ticket" /> Book Now
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    ))}
+
+    {trendingDisplay.length === 0 && (
+      <div className="text-center text-white-50 py-4">
+        No trending movies available.
+      </div>
+    )}
+  </div>
+</section>
+
+{/* ========================= TOP PICKS ========================= */}
+<section className="container py-6" id="top-picks">
+  <div className="section-header">
+    <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div className="d-flex align-items-center gap-3 mb-3">
+        <i
+          className="fa-solid fa-gem"
+          style={{ color: "var(--primary)", fontSize: "1.8rem" }}
+        />
+        <div>
+          <h2 className="section-title mb-0">Top Picks</h2>
+          <p className="section-subtitle mb-0">
+            Recommended picks (stable until refresh)
+          </p>
+        </div>
       </div>
 
       <button
         className="btn-cinema btn-cinema-secondary"
-        onClick={() => goToHref("#now-showing")}
+        onClick={refreshHighlights}
+        type="button"
       >
-        View All <i className="fa-solid fa-arrow-right" />
+        Refresh <i className="fa-solid fa-rotate" />
       </button>
     </div>
   </div>
 
   <div className="row g-4">
-    {shuffleArray(trendingNow)
-      .slice(0, 4)
-      .map((movie, idx) => (
-        <div
-          key={movie._id}
-          className="col-12 col-md-6 col-lg-3 fade-in-up"
-          style={{ animationDelay: `${idx * 0.1}s` }}
-        >
-          <div className="movie-card">
-            <div className="movie-image-container">
-              {idx < 2 && (
-                <div
-                  className="movie-badge"
-                  style={{ background: "var(--accent-2)" }}
-                >
-                  {idx === 0 ? "🔥 Hot" : "🎬 Trending"}
-                </div>
-              )}
-              <img
-                src={
-                  movie.posterUrl ||
-                  "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=800&q=80"
-                }
-                alt={movie.title}
-                loading="lazy"
-              />
+    {topPicksDisplay.map((movie, idx) => (
+      <div
+        key={movie._id}
+        className="col-12 col-md-6 col-lg-4 fade-in-up"
+        style={{ animationDelay: `${idx * 0.1}s` }}
+      >
+        <div className="movie-card">
+          <div className="movie-image-container">
+            {idx < 2 && (
+              <div className="movie-badge" style={{ background: "var(--accent)" }}>
+                <i className="fa-solid fa-crown" /> Popular
+              </div>
+            )}
+
+            <img
+              src={
+                movie.posterUrl ||
+                "https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=800&q=80"
+              }
+              alt={movie.title}
+              loading="lazy"
+            />
+          </div>
+
+          <div className="movie-content">
+            <h3 className="movie-title">{movie.title}</h3>
+            <div className="movie-meta">
+              {movie.genre || "Drama"} • {movie.durationMins || 120} min •{" "}
+              {movie.language || "English"}
             </div>
 
-            <div className="movie-content">
-              <h3 className="movie-title">{movie.title}</h3>
-              <div className="movie-meta">
-                {movie.genre || "Action"} •{" "}
-                {movie.durationMins || 120} min •{" "}
-                {movie.language || "English"}
-              </div>
-
-              <div className="movie-actions">
-                <button
-                  className="btn-cinema btn-cinema-primary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openMovie(movie);
-                  }}
-                >
-                  <i className="fa-solid fa-ticket" /> Book Now
-                </button>
-              </div>
+            <div className="movie-actions">
+              <button
+                className="btn-cinema btn-cinema-primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openMovie(movie);
+                }}
+                type="button"
+              >
+                <i className="fa-solid fa-ticket" /> Book Now
+              </button>
             </div>
           </div>
         </div>
-      ))}
-  </div>
-</section>
-
-
- {/* ========================= TOP PICKS ========================= */}
-<section className="container py-6" id="top-picks">
-  <div className="section-header">
-    <div className="d-flex align-items-center gap-3 mb-3">
-      <i
-        className="fa-solid fa-gem"
-        style={{ color: "var(--primary)", fontSize: "1.8rem" }}
-      />
-      <div>
-        <h2 className="section-title mb-0">Top Picks</h2>
-        <p className="section-subtitle mb-0">
-          Recommended picks selected randomly for you
-        </p>
       </div>
-    </div>
-  </div>
+    ))}
 
-  <div className="row g-4">
-    {shuffleArray(topPicks)
-      .slice(0, 3)
-      .map((movie, idx) => (
-        <div
-          key={movie._id}
-          className="col-12 col-md-6 col-lg-4 fade-in-up"
-          style={{ animationDelay: `${idx * 0.1}s` }}
-        >
-          <div className="movie-card">
-            <div className="movie-image-container">
-              {idx < 2 && (
-                <div
-                  className="movie-badge"
-                  style={{ background: "var(--accent)" }}
-                >
-                  <i className="fa-solid fa-crown" /> Popular
-                </div>
-              )}
-              <img
-                src={
-                  movie.posterUrl ||
-                  "https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=800&q=80"
-                }
-                alt={movie.title}
-                loading="lazy"
-              />
-            </div>
-
-            <div className="movie-content">
-              <h3 className="movie-title">{movie.title}</h3>
-              <div className="movie-meta">
-                {movie.genre || "Drama"} • {movie.durationMins || 120} min •{" "}
-                {movie.language || "English"}
-              </div>
-
-              <div className="movie-actions">
-                <button
-                  className="btn-cinema btn-cinema-primary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openMovie(movie);
-                  }}
-                >
-                  <i className="fa-solid fa-ticket" /> Book Now
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ))}
+    {topPicksDisplay.length === 0 && (
+      <div className="text-center text-white-50 py-4">
+        No top picks available.
+      </div>
+    )}
   </div>
 </section>
+
+
 
 
       {/* ========================= CINEMA EXPERIENCE ========================= */}
